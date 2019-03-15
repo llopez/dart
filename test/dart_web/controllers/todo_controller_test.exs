@@ -1,8 +1,10 @@
 defmodule DartWeb.TodoControllerTest do
   use DartWeb.ConnCase
 
+  alias Dart.Auth
   alias Dart.Todos
   alias Dart.Todos.Todo
+  alias Plug.Test
 
   @create_attrs %{
     completed: true,
@@ -14,13 +16,24 @@ defmodule DartWeb.TodoControllerTest do
   }
   @invalid_attrs %{completed: nil, title: nil}
 
+  @current_user_attrs %{
+    email: "some current user email",
+    password: "some current user password"
+  }
+
+  def fixture(:current_user) do
+    {:ok, current_user} = Auth.create_user(@current_user_attrs)
+    current_user
+  end
+
   def fixture(:todo) do
     {:ok, todo} = Todos.create_todo(@create_attrs)
     todo
   end
 
   setup %{conn: conn} do
-    {:ok, conn: put_req_header(conn, "accept", "application/json")}
+    {:ok, conn: conn, current_user: current_user} = setup_current_user(conn)
+    {:ok, conn: put_req_header(conn, "accept", "application/json"), current_user: current_user}
   end
 
   describe "index" do
@@ -88,5 +101,13 @@ defmodule DartWeb.TodoControllerTest do
   defp create_todo(_) do
     todo = fixture(:todo)
     {:ok, todo: todo}
+  end
+
+  defp setup_current_user(conn) do
+    current_user = fixture(:current_user)
+
+    {:ok,
+     conn: Test.init_test_session(conn, current_user_id: current_user.id),
+     current_user: current_user}
   end
 end
